@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nguyễn Trường Thịnh — Video Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0b0b0b;
+    --bg2: #111;
+    --bg3: #161616;
+    --border: #1f1f1f;
+    --border2: #2a2a2a;
+    --text: #e8e5de;
+    --text2: #888;
+    --text3: #444;
+    --accent: #EF9F27;
+    --accent2: #FAC775;
+    --green: #5DCAA5;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Be Vietnam Pro', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    cursor: default;
+  }
+
+  /* CURSOR */
+  .cursor {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.15s ease;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    width: 32px; height: 32px;
+    border: 0.5px solid var(--accent);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9998;
+    transition: all 0.12s ease;
+    opacity: 0.5;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 20px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 0.5px solid transparent;
+    transition: border-color 0.3s, background 0.3s, backdrop-filter 0.3s;
+  }
+  nav.scrolled {
+    border-color: var(--border);
+    background: rgba(11,11,11,0.85);
+    backdrop-filter: blur(12px);
+  }
+  .nav-logo {
+    color: #ffffff !important;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+  }
+  .nav-logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a {
+    font-size: 12px;
+    color: #ffffff;
+    text-decoration: none;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.08em;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 48px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-glow {
+    position: absolute;
+    top: 20%; right: -100px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(239,159,39,0.07) 0%, transparent 65%);
+    pointer-events: none;
+    animation: drift 8s ease-in-out infinite alternate;
+  }
+  .hero-glow2 {
+    position: absolute;
+    bottom: 10%; left: -80px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(93,202,165,0.05) 0%, transparent 65%);
+    pointer-events: none;
+    animation: drift 10s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes drift { from { transform: translate(0,0); } to { transform: translate(20px, -30px); } }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.15em;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.1s forwards;
+  }
+  .hero-eyebrow::before { content: ''; width: 24px; height: 0.5px; background: var(--text3); }
+
+  .hero-name {
+    font-size: clamp(52px, 8vw, 96px);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.2s forwards;
+  }
+  .hero-name .accent { color: var(--accent); }
+
+  .hero-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.4s forwards;
+  }
+  .hero-desc {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.7;
+    max-width: 400px;
+  }
+  .hero-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+  .hero-portrait {
+    position: absolute;
+    z-index: 0;
+    right: -3%;
+    top: 0;
+    width: 55%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    opacity: 0.7;
+    filter: grayscale(20%);
+    -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.9) 30%, transparent 100%);
+    mask-image: linear-gradient(to left, rgba(0,0,0,0.9) 30%, transparent 100%);
+  }
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+  }
+  .pulse {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: var(--accent);
+    color: #0b0b0b;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-primary svg { width: 14px; height: 14px; }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    animation: fadeIn 1s ease 1s forwards;
+  }
+  .scroll-hint span { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text3); letter-spacing: 0.12em; }
+  .scroll-line { width: 0.5px; height: 32px; background: linear-gradient(to bottom, var(--text3), transparent); animation: scrollLine 1.5s ease infinite; }
+  @keyframes scrollLine { 0%{opacity:0;transform:scaleY(0);transform-origin:top} 50%{opacity:1} 100%{opacity:0;transform:scaleY(1);transform-origin:bottom} }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  /* SECTIONS */
+  section {
+    padding: 80px 48px;
+    border-top: 0.5px solid var(--border);
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .sec-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .sec-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+  .sec-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+  }
+  .sec-line { flex: 1; height: 0.5px; background: var(--border); }
+
+  /* ABOUT */
+  .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+  .about-text { font-size: 15px; line-height: 1.8; color: var(--text2); }
+  .about-text strong { color: var(--text); font-weight: 600; }
+  .about-text p + p { margin-top: 16px; }
+  .contact-list { display: flex; flex-direction: column; gap: 10px; }
+  .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text2);
+    font-size: 13px;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+  }
+  .contact-item:hover { border-color: var(--border2); color: var(--text); background: var(--bg2); }
+  .contact-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--bg3); border: 0.5px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .contact-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); margin-bottom: 2px; }
+  .contact-val { font-size: 12px; color: var(--text2); }
+
+  /* SKILLS */
+  .skills-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .sk-card {
+    padding: 20px;
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg2);
+    transition: border-color 0.2s;
+  }
+  .sk-card:hover { border-color: var(--border2); }
+  .sk-icon { margin-bottom: 14px; opacity: 0.9; }
+  .sk-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .sk-sub { font-size: 11px; color: var(--text3); margin-bottom: 14px; font-family: 'DM Mono', monospace; }
+  .sk-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .sk-tag { font-size: 10px; padding: 3px 9px; border-radius: 99px; border: 0.5px solid var(--border2); color: var(--text3); }
+
+  /* WORKS */
+  /* ===== THAY LINK TÁC PHẨM Ở ĐÂY ===== */
+  /* Tìm href="#" trong phần .work-card và thay bằng link Drive của từng video */
+  .works-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes slideIn { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+  .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .work-card {
+    border: none;
+    overflow: hidden;
+    background: var(--bg2);
+    text-decoration: none;
+    display: block;
+    transition: all 0.4s ease;
+    position: relative;
+  }
+  .work-card:hover { background: #161616; }
+  .work-card:hover .work-thumb-icon { transform: scale(1.12); }
+  .work-card:hover .work-title { color: var(--accent); }
+  .work-card:hover .work-link { color: var(--accent2); letter-spacing: 0.08em; }
+  .work-thumb {
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 0.5px solid var(--border2);
+  }
+  .work-thumb-bg { position: absolute; inset: 0; opacity: 0.2; transition: opacity 0.3s; }
+  .work-card:hover .work-thumb-bg { opacity: 0.35; }
+  .work-thumb-icon { font-size: 40px; z-index: 1; position: relative; transition: transform 0.3s; }
+  .work-card:hover .work-thumb-icon { transform: scale(1.08); }
+  .work-thumb-label {
+    position: absolute;
+    bottom: 12px; right: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    z-index: 2;
+  }
+  .work-num {
+    position: absolute;
+    top: 16px; left: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    z-index: 2;
+    opacity: 0.7;
+  }
+  .work-info { padding: 24px; border-top: 0.5px solid var(--border); }
+  .work-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; transition: color 0.3s; }
+  .work-desc { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 16px; }
+  .work-footer { display: flex; justify-content: space-between; align-items: center; }
+  .work-tags { display: flex; gap: 5px; }
+  .work-tag { font-size: 10px; padding: 2px 8px; border-radius: 99px; border: 0.5px solid var(--border2); color: var(--text3); }
+  .work-link {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.05em;
+    transition: all 0.3s;
+  }
+  .work-link::after { content: '→'; transition: transform 0.3s; }
+  .work-card:hover .work-link::after { transform: translateX(5px); }
+
+  /* EXPERIENCE */
+  .exp-list { display: flex; flex-direction: column; }
+  .exp-item {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 24px;
+    padding: 28px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .exp-item:first-child { padding-top: 0; }
+  .exp-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .exp-date { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); line-height: 1.6; padding-top: 3px; }
+  .exp-body {}
+  .exp-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .exp-company { font-size: 12px; color: var(--accent); margin-bottom: 10px; font-family: 'DM Mono', monospace; }
+  .exp-desc { font-size: 13px; color: var(--text2); line-height: 1.7; }
+  .exp-desc li { margin-bottom: 4px; padding-left: 14px; position: relative; }
+  .exp-desc li::before { content: '—'; position: absolute; left: 0; color: var(--text3); }
+
+  /* FOOTER */
+  footer {
+    border-top: 0.5px solid var(--border);
+    padding: 32px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .footer-left { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); }
+  .footer-left span { color: var(--accent); }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border: 0.5px solid var(--border2);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text2);
+    text-decoration: none;
+    font-family: 'DM Mono', monospace;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--text3); color: var(--text); }
+
+  /* RESPONSIVE */
+  @media(max-width: 768px) {
+    nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    .hero { padding: 0 24px 60px; }
+    section { padding: 60px 24px; }
+    .about-grid { grid-template-columns: 1fr; gap: 32px; }
+    .works-grid { grid-template-columns: 1fr; }
+    .exp-item { grid-template-columns: 1fr; gap: 6px; }
+    footer { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<nav id="nav">
+  <div class="nav-logo">ntt<span>.</span>portfolio</div>
+  <div class="nav-links">
+    <a href="#about">Về Tôi</a>
+    <a href="#skills">Kỹ Năng</a>
+    <a href="#works">Tác Phẩm</a>
+    <a href="#experience">Kinh Nghiệm</a>
+  </div>
+</nav>
+
+<div class="hero" id="home">
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+  <img class="hero-portrait" src="https://i.ibb.co/CpDBnvHQ/z7890722271152-ab35e48b471ac46542916f8a2a655d93.jpg" alt="Nguyễn Trường Thịnh">
+  <div class="hero-eyebrow">video editor · content creator · hcm · 2026</div>
+  <div class="hero-name">Nguyễn<br>Trường <span class="accent">Thịnh</span></div>
+  <div class="hero-bottom">
+    <div class="hero-desc">
+      Video Editor & Content Creator tập trung vào short-form content (TikTok/Reels). Thành thạo CapCut, Canva và AI workflow để tối ưu tốc độ sản xuất nội dung.
+    </div>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#works">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+        Xem portfolio
+      </a>
+      <div class="status"><div class="pulse"></div>OPEN TO WORK</div>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <span>scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</div>
+
+<section id="about" class="reveal">
+  <div class="sec-header">
+    <span class="sec-num">01</span>
+    <span class="sec-title">Về Tôi</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="about-grid">
+    <div class="about-text">
+      <p>Tôi là <strong>Nguyễn Trường Thịnh</strong>, sinh viên năm cuối ngành <strong>Quản trị Kinh doanh tại HUTECH</strong>, dự kiến tốt nghiệp 2026.</p>
+      <p>Tự học và thực hành edit video short-form, thiết kế nội dung và ứng dụng AI tools vào quy trình sáng tạo. Tôi theo dõi sát xu hướng TikTok/Reels và liên tục cập nhật các công cụ AI mới nhất.</p>
+      <p>Ngoài ra, tôi có <strong>background tài chính</strong> từ thực tập tại MBS — lợi thế khi làm content cho ngành tài chính, ngân hàng, fintech.</p>
+    </div>
+    <div class="contact-list">
+      <a class="contact-item" href="mailto:nguyenthinh2622004@gmail.com">
+        <div class="contact-icon">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+  </svg>
+</div>
+        <div>
+          <div class="contact-label">email</div>
+          <div class="contact-val">nguyenthinh2622004@gmail.com</div>
+        </div>
+      </a>
+      <a class="contact-item" href="tel:0815586971">
+        <div class="contact-icon">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.78a16 16 0 0 0 6.29 6.29l1.06-1.06a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </svg>
+</div>
+        <div>
+          <div class="contact-label">điện thoại</div>
+          <div class="contact-val">0815 586 971</div>
+        </div>
+      </a>
+      <div class="contact-item">
+        <div class="contact-icon">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+  </svg>
+</div>
+        <div>
+          <div class="contact-label">địa điểm</div>
+          <div class="contact-val">TP. Hồ Chí Minh</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="skills" class="reveal">
+  <div class="sec-header">
+    <span class="sec-num">02</span>
+    <span class="sec-title">Kỹ Năng</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="skills-grid">
+    <div class="sk-card">
+      <div class="sk-icon">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/>
+  </svg>
+</div>
+      <div class="sk-name">Video Editing</div>
+      <div class="sk-sub">short-form content</div>
+      <div class="sk-tags">
+        <span class="sk-tag">CapCut</span>
+        <span class="sk-tag">Subtitle</span>
+        <span class="sk-tag">Transition</span>
+        <span class="sk-tag">Sync nhạc</span>
+        <span class="sk-tag">Hiệu ứng</span>
+      </div>
+    </div>
+    <div class="sk-card">
+      <div class="sk-icon">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="11"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>
+  </svg>
+</div>
+      <div class="sk-name">AI Tools</div>
+      <div class="sk-sub">sáng tạo & tối ưu</div>
+      <div class="sk-tags">
+        <span class="sk-tag">ChatGPT</span>
+        <span class="sk-tag">Claude</span>
+        <span class="sk-tag">Gemini</span>
+        <span class="sk-tag">Kling</span>
+        <span class="sk-tag">Suno</span>
+      </div>
+    </div>
+    <div class="sk-card">
+      <div class="sk-icon">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="22"/><line x1="2" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="22" y2="12"/>
+  </svg>
+</div>
+      <div class="sk-name">Design</div>
+      <div class="sk-sub">visual content</div>
+      <div class="sk-tags">
+        <span class="sk-tag">Canva</span>
+        <span class="sk-tag">Thumbnail</span>
+        <span class="sk-tag">Banner</span>
+        <span class="sk-tag">Menu</span>
+      </div>
+    </div>
+    <div class="sk-card">
+      <div class="sk-icon">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+  </svg>
+</div>
+      <div class="sk-name">Ngôn ngữ</div>
+      <div class="sk-sub">giao tiếp</div>
+      <div class="sk-tags">
+        <span class="sk-tag">Tiếng Việt</span>
+        <span class="sk-tag">English — Reading & Basic Communication</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="works">
+  <div class="sec-header">
+    <span class="sec-num">03</span>
+    <span class="sec-title">Tác Phẩm</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="works-grid">
+
+    <!-- ===== TÁC PHẨM 1: LONG MẠCH TRAILER ===== -->
+    <!-- Thay href="#" bằng link Drive của video Long Mạch -->
+    <a class="work-card reveal" href="longmach.html" target="_blank">
+      <div class="work-thumb" style="background:#0a0a14">
+        <img src="https://i.ibb.co/67JqBK7n/Chat-GPT-Image-01-56-47-24-thg-5-2026.png" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.75)">
+        <div class="work-num">01 / ACTION</div>
+        <div class="work-thumb-label">CapCut · Beat Sync · Color Grade</div>
+      </div>
+      <div class="work-info">
+        <div class="work-title">Long Mạch Trailer</div>
+        <div class="work-desc">Dựng trailer dark fantasy theo nhịp cinematic — tập trung pacing, sound design và đồng bộ visual với beat nhạc để tăng cảm giác epic.</div>
+        <div class="work-footer">
+          <div class="work-tags">
+            <span class="work-tag">CapCut</span>
+            <span class="work-tag">Action</span>
+            <span class="work-tag">Trailer</span>
+          </div>
+          <div class="work-link">xem video</div>
+        </div>
+      </div>
+    </a>
+
+    <!-- ===== TÁC PHẨM 2: PORTFOLIO TỔNG HỢP ===== -->
+    <a class="work-card reveal" href="https://drive.google.com/drive/folders/1do4IfY85STHRMek2h7IqItopQExH7E-_?usp=drive_link" target="_blank" style="transition-delay:0.15s">
+      <div class="work-thumb" style="background:#100e00">
+        <img src="https://i.ibb.co/BVM6TXnv/Ra-M-t-S-n-ph-m.png" style="width:100%;height:100%;object-fit:cover;object-position:center center;filter:brightness(0.8)">
+        <div class="work-num">02 / DESIGN</div>
+        <div class="work-thumb-label">Canva · Banner · Menu</div>
+      </div>
+      <div class="work-info">
+        <div class="work-title">Tác phẩm khác</div>
+        <div class="work-desc">Tổng hợp các tác phẩm thiết kế — banner sản phẩm, menu F&B và các visual content khác được thực hiện bằng Canva.</div>
+        <div class="work-footer">
+          <div class="work-tags">
+            <span class="work-tag">Canva</span>
+            <span class="work-tag">CapCut</span>
+            <span class="work-tag">Banner</span>
+            <span class="work-tag">Design</span>
+          </div>
+          <div class="work-link">xem tất cả</div>
+        </div>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<section id="experience" class="reveal">
+  <div class="sec-header">
+    <span class="sec-num">04</span>
+    <span class="sec-title">Kinh Nghiệm</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="exp-list">
+    <div class="exp-item">
+      <div class="exp-date">2024<br>→ Hiện tại</div>
+      <div class="exp-body">
+        <div class="exp-title">Content Creator / Video Editor</div>
+        <div class="exp-company">dự án cá nhân · tự học & thực hành</div>
+        <ul class="exp-desc">
+          <li>Edit video short-form bằng CapCut: cắt ghép, subtitle tự động, transition, đồng bộ nhạc và hiệu ứng</li>
+          <li>Thiết kế thumbnail, banner sản phẩm, menu bằng Canva</li>
+          <li>Tự nghiên cứu xu hướng format video trên TikTok/Reels và áp dụng thực hành</li>
+          <li>Ứng dụng AI tools (ChatGPT, Claude, Gemini, Kling, Suno) vào quy trình sáng tạo</li>
+        </ul>
+      </div>
+    </div>
+    <div class="exp-item">
+      <div class="exp-date">T4/2024<br>→ Hiện tại</div>
+      <div class="exp-body">
+        <div class="exp-title">Intern Tài chính / Chứng khoán</div>
+        <div class="exp-company">công ty cp chứng khoán mb (mbs)</div>
+        <ul class="exp-desc">
+          <li>Hỗ trợ phân tích dữ liệu tài chính và theo dõi thị trường chứng khoán</li>
+          <li>Rèn kỹ năng đọc hiểu báo cáo tài chính và xu hướng thị trường</li>
+          <li>Phát triển tư duy phân tích số liệu — có thể ứng dụng vào đo lường hiệu quả content</li>
+        </ul>
+      </div>
+    </div>
+    <div class="exp-item">
+      <div class="exp-date">2022 → 2026<br>(dự kiến)</div>
+      <div class="exp-body">
+        <div class="exp-title">Cử nhân Quản trị Kinh doanh</div>
+        <div class="exp-company">đại học công nghệ tp. hcm (hutech)</div>
+        <ul class="exp-desc">
+          <li>Được đào tạo tư duy kinh doanh, phân tích thị trường và quản lý dự án</li>
+          <li>Thực hành bài tập nhóm, thuyết trình và nghiên cứu thị trường</li>
+          <li>Tự định hướng phát triển kỹ năng Video Editor song song với việc học</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-left">nguyentruongthinh · hcm · <span>2026</span></div>
+  <a class="btn-ghost" href="https://drive.google.com/drive/folders/1CEaKqxvrimxYZs4tlxulyCWoVCWkWPY_?usp=sharing" target="_blank">
+    xem toàn bộ portfolio →
+  </a>
+</footer>
+
+<script>
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; cursor.style.left = mx - 4 + 'px'; cursor.style.top = my - 4 + 'px'; });
+  function animRing() { rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12; ring.style.left = rx - 16 + 'px'; ring.style.top = ry - 16 + 'px'; requestAnimationFrame(animRing); }
+  animRing();
+
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => { nav.classList.toggle('scrolled', window.scrollY > 40); });
+
+  // Scroll reveal
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1 });
+reveals.forEach(el => observer.observe(el));
+
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+  });
+</script>
+</body>
+</html>

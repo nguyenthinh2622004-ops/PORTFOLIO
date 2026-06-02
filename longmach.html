@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Long Mạch — Mạch Sự Thức Tỉnh</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #080808;
+  --bg2: #0f0f0f;
+  --border: #1a1a1a;
+  --border2: #2a2a2a;
+  --text: #e8e5de;
+  --text2: #888;
+  --text3: #444;
+  --accent: #C0392B;
+  --accent2: #E74C3C;
+  --gold: #EF9F27;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* CURSOR */
+.cursor {
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: difference;
+  transition: transform 0.15s;
+}
+
+/* NAV */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 20px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.3s, backdrop-filter 0.3s;
+}
+nav.scrolled {
+  background: rgba(8,8,8,0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 0.5px solid var(--border);
+}
+.nav-logo {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 0.15em;
+  text-decoration: none;
+}
+.nav-logo span { color: var(--accent); }
+.nav-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #ffffff;
+  text-decoration: none;
+  letter-spacing: 0.1em;
+  transition: color 0.2s;
+}
+.nav-back:hover { color: var(--accent); }
+.nav-back::before { content: '←'; }
+
+/* HERO */
+.hero {
+  height: 100vh;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 48px 80px;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 70%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 63% 71%;
+  filter: brightness(1.1) saturate(1.1);
+  -webkit-mask-image: linear-gradient(to left, black 50%, rgba(0,0,0,0.85) 75%, transparent 100%);
+  mask-image: linear-gradient(to left, black 50%, rgba(0,0,0,0.85) 75%, transparent 100%);
+  transition: transform 8s ease;
+  transform: scale(1.05);
+}
+.hero-bg.loaded { transform: scale(1); }
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(8,8,8,1) 0%, rgba(8,8,8,0.5) 40%, transparent 80%);
+}
+.hero-overlay-left {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(8,8,8,1) 0%, rgba(8,8,8,0.8) 25%, rgba(8,8,8,0.2) 45%, transparent 60%);
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 700px;
+}
+.hero-eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.2s forwards;
+}
+.hero-eyebrow::before { content: ''; width: 24px; height: 0.5px; background: var(--accent); }
+.hero-title {
+  font-size: clamp(56px, 10vw, 120px);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-bottom: 16px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.3s forwards;
+}
+.hero-title span { color: var(--accent); }
+.hero-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text2);
+  letter-spacing: 0.12em;
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.4s forwards;
+}
+.hero-desc {
+  font-size: 15px;
+  color: var(--text2);
+  line-height: 1.75;
+  max-width: 480px;
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.5s forwards;
+}
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.6s forwards;
+}
+.btn-red {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: background 0.2s, transform 0.15s;
+}
+.btn-red:hover { background: var(--accent2); transform: translateY(-1px); }
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: 0.5px solid var(--border2);
+  color: var(--text2);
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-ghost:hover { border-color: var(--text3); color: var(--text); }
+
+.hero-scroll {
+  position: absolute;
+  bottom: 32px;
+  right: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+  opacity: 0;
+  animation: fadeIn 1s ease 1s forwards;
+}
+.hero-scroll span { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text3); letter-spacing: 0.15em; writing-mode: vertical-rl; }
+.hero-scroll-line { width: 0.5px; height: 48px; background: linear-gradient(to bottom, var(--text3), transparent); animation: scrollLine 2s ease infinite; }
+@keyframes scrollLine { 0%{opacity:0;transform:scaleY(0);transform-origin:top} 50%{opacity:1} 100%{opacity:0;transform:scaleY(1);transform-origin:bottom} }
+
+/* STATS */
+.stats {
+  padding: 48px;
+  border-bottom: 0.5px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+.stat-item {
+  padding: 24px 32px;
+  border-right: 0.5px solid var(--border);
+}
+.stat-item:last-child { border-right: none; }
+.stat-num {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.03em;
+  margin-bottom: 4px;
+}
+.stat-num span { color: var(--accent); }
+.stat-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+}
+
+/* VIDEOS */
+.videos {
+  padding: 80px 48px;
+}
+.sec-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+.sec-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+.sec-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+}
+.sec-line { flex: 1; height: 0.5px; background: var(--border); }
+
+.video-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  background: var(--border);
+}
+.video-card {
+  background: var(--bg);
+  text-decoration: none;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.3s;
+}
+.video-card:hover { background: var(--bg2); }
+.video-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: var(--bg2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.video-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.6) saturate(0.7);
+  transition: filter 0.4s, transform 0.5s;
+}
+.video-card:hover .video-thumb img { filter: brightness(1.1) saturate(1.1); transform: scale(1.03); }
+.video-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d0d0d;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+}
+.play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: border-color 0.3s, background 0.3s, transform 0.3s;
+  background: rgba(0,0,0,0.3);
+}
+.video-card:hover .play-btn {
+  border-color: var(--accent);
+  background: rgba(192,57,43,0.2);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+.play-btn svg { width: 18px; height: 18px; fill: white; margin-left: 3px; }
+.video-ep {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.15em;
+  z-index: 2;
+}
+.video-info {
+  padding: 20px 24px;
+  border-top: 0.5px solid var(--border);
+}
+.video-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+  transition: color 0.3s;
+}
+.video-card:hover .video-title { color: var(--accent); }
+.video-desc {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.video-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.video-tags { display: flex; gap: 6px; }
+.video-tag {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  border: 0.5px solid var(--border2);
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+}
+.video-link {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.05em;
+  transition: color 0.3s;
+}
+.video-card:hover .video-link { color: var(--accent); }
+
+/* ABOUT PROJECT */
+.about-project {
+  padding: 80px 48px;
+  border-top: 0.5px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: start;
+}
+.about-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.15em;
+  margin-bottom: 16px;
+}
+.about-heading {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--text);
+  margin-bottom: 20px;
+  letter-spacing: -0.02em;
+}
+.about-text {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.8;
+}
+.about-text p + p { margin-top: 14px; }
+.credits-list { display: flex; flex-direction: column; gap: 16px; }
+.credit-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 16px;
+  border-bottom: 0.5px solid var(--border);
+}
+.credit-item:last-child { border-bottom: none; }
+.credit-role {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+}
+.credit-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* FOOTER */
+footer {
+  border-top: 0.5px solid var(--border);
+  padding: 32px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.footer-left {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+}
+.footer-left span { color: var(--accent); }
+.footer-back {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #ffffff;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s;
+}
+.footer-back:hover { color: var(--accent); }
+
+/* REVEAL */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ANIMATIONS */
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+/* RESPONSIVE */
+@media(max-width: 768px) {
+  nav { padding: 16px 24px; }
+  .hero { padding: 0 24px 60px; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .stat-item { border-bottom: 0.5px solid var(--border); }
+  .video-grid { grid-template-columns: 1fr; }
+  .about-project { grid-template-columns: 1fr; gap: 40px; padding: 60px 24px; }
+  .videos { padding: 60px 24px; }
+  footer { padding: 24px; }
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+
+<nav id="nav">
+  <a class="nav-logo" href="index.html">ntt<span>.</span>portfolio</a>
+  <a class="nav-back" href="index.html">Quay lại portfolio</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <img class="hero-bg" id="heroBg" src="https://i.ibb.co/GvMRqQMt/3a7f2d45-8b7f-4e0f-95de-590f2ea9e37b.png" alt="Long Mạch poster">
+  <div class="hero-overlay"></div>
+  <div class="hero-overlay-left"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">dark fantasy · action · 2026</div>
+    <div class="hero-title">LONG<br>MẠCH<span>.</span></div>
+    <div class="hero-sub">mạch sự thức tỉnh — video edit project</div>
+    <div class="hero-desc">Long Mạch là ký ức còn sống của đất nước. Dự án edit video dark fantasy lấy bối cảnh Việt Nam hiện đại — nơi những Mạch Sư cuối cùng đứng giữa ranh giới Long Mạch và Hắc Mạch.</div>
+    <div class="hero-actions">
+      <a class="btn-red" href="#videos">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+        Xem video
+      </a>
+      <a class="btn-ghost" href="https://drive.google.com/drive/folders/1CEaKqxvrimxYZs4tlxulyCWoVCWkWPY_?usp=sharing" target="_blank">Xem toàn bộ Drive</a>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <div class="hero-scroll-line"></div>
+    <span>scroll</span>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats reveal">
+  <div class="stat-item">
+    <div class="stat-num">4<span></span></div>
+    <div class="stat-label">video clips</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">2<span>026</span></div>
+    <div class="stat-label">năm thực hiện</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" style="font-size:24px">CapCut</div>
+    <div class="stat-label">công cụ chính</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" style="font-size:20px">Dark<span> Fantasy</span></div>
+    <div class="stat-label">thể loại</div>
+  </div>
+</div>
+
+<!-- VIDEOS -->
+<div class="videos" id="videos">
+  <div class="sec-header reveal">
+    <span class="sec-num">01</span>
+    <span class="sec-title">Các tập video</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="video-grid">
+
+    <a class="video-card reveal" href="https://vimeo.com/1197456911" target="_blank">
+      <div class="video-thumb">
+        <img src="https://vumbnail.com/1197456911.jpg" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.8)" alt="thumbnail">
+        <div class="video-ep">01 · TRAILER</div>
+        <div class="play-btn">
+          <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+        </div>
+      </div>
+      <div class="video-info">
+        <div class="video-title">Long Mạch — Cinematic Trailer</div>
+        <div class="video-desc">Trailer chính thức của dự án. Dựng theo phong cách cinematic với beat sync, color grade tối và pacing hào hùng — giới thiệu thế giới Long Mạch lần đầu tiên.</div>
+        <div class="video-meta">
+          <div class="video-tags">
+            <span class="video-tag">Trailer</span>
+            <span class="video-tag">Beat Sync</span>
+            <span class="video-tag">1:17</span>
+          </div>
+          <div class="video-link">xem video →</div>
+        </div>
+      </div>
+    </a>
+
+    <a class="video-card reveal" href="https://vimeo.com/1197456910" target="_blank" style="transition-delay:0.1s">
+      <div class="video-thumb">
+        <img src="https://vumbnail.com/1197456910.jpg" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.8)" alt="thumbnail">
+        <div class="video-ep">02 · INTRO</div>
+        <div class="play-btn">
+          <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+        </div>
+      </div>
+      <div class="video-info">
+        <div class="video-title">Long Mạch — Intro</div>
+        <div class="video-desc">Cảnh mở màn ngắn gọn, súc tích. Giới thiệu tên dự án và không khí thế giới Long Mạch — nơi ranh giới giữa Long Mạch và Hắc Mạch bắt đầu lung lay.</div>
+        <div class="video-meta">
+          <div class="video-tags">
+            <span class="video-tag">Intro</span>
+            <span class="video-tag">Cinematic</span>
+            <span class="video-tag">0:38</span>
+          </div>
+          <div class="video-link">xem video →</div>
+        </div>
+      </div>
+    </a>
+
+    <a class="video-card reveal" href="https://vimeo.com/1197456914" target="_blank" style="transition-delay:0.2s">
+      <div class="video-thumb">
+        <img src="https://vumbnail.com/1197456914.jpg" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.8)" alt="thumbnail">
+        <div class="video-ep">03 · COMBAT</div>
+        <div class="play-btn">
+          <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+        </div>
+      </div>
+      <div class="video-info">
+        <div class="video-title">Long Mạch — Combat Edit</div>
+        <div class="video-desc">Chuỗi cảnh chiến đấu được cắt ghép theo nhịp nhạc, tập trung vào fast-paced cut và hiệu ứng va chạm. Video dài nhất và mãn nhãn nhất trong series.</div>
+        <div class="video-meta">
+          <div class="video-tags">
+            <span class="video-tag">Action</span>
+            <span class="video-tag">Fast Cut</span>
+            <span class="video-tag">1:53</span>
+          </div>
+          <div class="video-link">xem video →</div>
+        </div>
+      </div>
+    </a>
+
+    <a class="video-card reveal" href="https://vimeo.com/1197456912" target="_blank" style="transition-delay:0.3s">
+      <div class="video-thumb">
+        <img src="https://vumbnail.com/1197456912.jpg" style="width:100%;height:100%;object-fit:cover;filter:brightness(0.8)" alt="thumbnail">
+        <div class="video-ep">04 · SCENE CUT</div>
+        <div class="play-btn">
+          <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+        </div>
+      </div>
+      <div class="video-info">
+        <div class="video-title">Long Mạch — Cut-scene</div>
+        <div class="video-desc">Cảnh combat đơn giản hơn, tập trung vào kỹ thuật cắt ghép cơ bản — luyện tập nhịp cắt, transition và sync nhạc theo cảnh chiến đấu ngắn.</div>
+        <div class="video-meta">
+          <div class="video-tags">
+            <span class="video-tag">Scene Cut</span>
+            <span class="video-tag">Storytelling</span>
+            <span class="video-tag">0:47</span>
+          </div>
+          <div class="video-link">xem video →</div>
+        </div>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+<!-- ABOUT PROJECT -->
+<div class="about-project">
+  <div class="reveal">
+    <div class="about-label">về dự án</div>
+    <div class="about-heading">Long Mạch —<br>Mạch Sự Thức Tỉnh</div>
+    <div class="about-text">
+      <p><strong style="color:var(--text)">Long Mạch</strong> là ký ức còn sống của đất nước — không phải nguồn năng lượng thuần túy, mà là tổng hợp của tất cả những gì đã xảy ra trên mảnh đất Việt Nam qua hàng nghìn năm: chiến thắng, hy sinh, tình yêu, mất mát.</p>
+      <p>Song song với Long Mạch tồn tại <strong style="color:#C0392B">Hắc Mạch</strong> — mặt tối tự nhiên của cùng một đất nước, hình thành từ ký ức đau thương, oán hận và nỗi sợ hãi tích lũy qua lịch sử. Hai luồng không thể tách rời, như sáng và tối của một mảnh đất.</p>
+      <p>Câu chuyện bắt đầu khi phong ấn Hắc Mạch miền Nam — được đặt từ thế kỷ 20 và vô tình được nuôi dưỡng bởi sinh khí hàng nghìn học sinh trường Trần Phú — bắt đầu vỡ sau COVID-19. <strong style="color:var(--text)">Trần Phong</strong>, hạt giống cuối cùng của gia tộc Mạch Sư miền Nam, là người duy nhất có thể ngăn thảm họa — không phải vì được chọn, mà vì là người duy nhất còn lại.</p>
+    </div>
+  </div>
+  <div class="reveal" style="transition-delay:0.15s">
+    <div class="about-label" style="margin-bottom:20px">thế giới quan</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:32px">
+      <div style="padding:16px;border:0.5px solid var(--border);border-radius:4px;background:rgba(192,57,43,0.04)">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:0.1em;margin-bottom:6px">LONG MẠCH</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6">Ký ức hào hùng của đất nước. Sức mạnh của Mạch Sư được khai thác từ đây — mạch đất, sơn khí, thủy khí, phong khí và nhân khí tích lũy qua nghìn năm.</div>
+      </div>
+      <div style="padding:16px;border:0.5px solid #2a1a1a;border-radius:4px;background:rgba(0,0,0,0.3)">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:#666;letter-spacing:0.1em;margin-bottom:6px">HẮC MẠCH</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6">Mặt tối không thể tách rời. Hình thành từ chiến tranh, dịch bệnh và đau thương tích lũy. Sau COVID-19, Hắc Mạch miền Nam là đặc nhất và bất ổn nhất trong lịch sử hiện đại.</div>
+      </div>
+      <div style="padding:16px;border:0.5px solid var(--border);border-radius:4px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold);letter-spacing:0.1em;margin-bottom:6px">ÁM MẠCH</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6">Tổ chức bí ẩn muốn kiểm soát — không tiêu diệt — các điểm phong ấn Hắc Mạch. Đã xóa sổ gia tộc miền Nam 15-20 năm trước và chờ đợi phong ấn tự vỡ.</div>
+      </div>
+    </div>
+    <div class="about-label">nhân vật</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:32px">
+      <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:0.5px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Trần Phong</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">hạt giống cuối cùng</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:0.5px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Minh Huy</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">người không buông tay</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:0.5px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Linh Nhi</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">mạch sư miền trung</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:0.5px solid var(--border)">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Lê Khải</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">gia tộc 400 năm</div>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <div style="font-size:13px;font-weight:600;color:#C0392B">Hắc Giao</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">giao long hóa hình</div>
+      </div>
+    </div>
+    <div class="about-label">thông tin</div>
+    <div class="about-label">thông tin</div>
+    <div class="credits-list">
+      <div class="credit-item">
+        <div class="credit-role">video editor</div>
+        <div class="credit-name">Nguyễn Trường Thịnh</div>
+      </div>
+      <div class="credit-item">
+        <div class="credit-role">công cụ</div>
+        <div class="credit-name">CapCut · Suno · Kling</div>
+      </div>
+      <div class="credit-item">
+        <div class="credit-role">thể loại</div>
+        <div class="credit-name">Dark Fantasy · Action</div>
+      </div>
+      <div class="credit-item">
+        <div class="credit-role">năm</div>
+        <div class="credit-name">2026</div>
+      </div>
+      <div class="credit-item">
+        <div class="credit-role">số tập</div>
+        <div class="credit-name">4 videos</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-left">long mạch · <span>ntt</span> · 2026</div>
+  <a class="footer-back" href="index.html">← quay lại portfolio</a>
+</footer>
+
+<script>
+const cursor = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX - 4 + 'px';
+  cursor.style.top = e.clientY - 4 + 'px';
+});
+
+// Nav scroll
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40));
+
+// Hero bg parallax + loaded
+const heroBg = document.getElementById('heroBg');
+setTimeout(() => heroBg.classList.add('loaded'), 100);
+
+// Scroll reveal
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+reveals.forEach(el => observer.observe(el));
+</script>
+
+
+</body>
+</html>
